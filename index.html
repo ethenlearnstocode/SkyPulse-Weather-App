@@ -3,243 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UK Weather Tracker</title>
+    <title>SkyPulse Weather App</title>
+    
     <style>
-        /* CSS Variables for easy color management */
-        :root {
-            --primary-color: #0d6efd;
-            --primary-hover: #0b5ed7;
-            --bg-color: #f8f9fa;
-            --text-color: #333;
-            --card-bg: #ffffff;
-            --border-radius: 12px;
-        }
-
+        /* Base page setup */
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: Arial, sans-serif;
+            background-color: #121826;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
+            background-size: cover;
+            background-position: center;
+            transition: background 0.4s ease;
         }
 
-        .container {
-            background-color: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        /* Weather condition backgrounds */
+        body.sunny {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                              url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80');
+        }
+
+        body.cloudy {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                              url('https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=1000&q=80');
+        }
+
+        body.rainy {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                              url('https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=1000&q=80');
+        }
+
+        /* Container card */
+        .weather-card {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 25px;
             width: 100%;
-            max-width: 450px;
-            text-align: center;
+            max-width: 480px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
         }
 
-        h2 {
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-        }
-
-        .input-group {
+        /* Header layout */
+        .top-bar {
             display: flex;
             gap: 10px;
-            margin-bottom: 1.5rem;
+            margin-bottom: 25px;
         }
 
         input {
-            flex-grow: 1;
-            padding: 12px 16px;
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #0f172a;
+            color: #ffffff;
             font-size: 1rem;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            outline: none;
-            transition: border-color 0.2s ease;
-        }
-
-        input:focus {
-            border-color: var(--primary-color);
         }
 
         button {
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: 600;
-            color: white;
-            background-color: var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 6px;
             border: none;
-            border-radius: 8px;
+            background-color: #38bdf8;
+            color: #0f172a;
+            font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
         }
 
         button:hover {
-            background-color: var(--primary-hover);
+            opacity: 0.9;
         }
 
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .weather-card {
-            background-color: #f1f8ff;
-            border: 1px solid #cce5ff;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-top: 1.5rem;
-            display: none; /* Hidden by default */
-            animation: fadeIn 0.4s ease-out;
-        }
-
-        .weather-card h3 {
-            margin-top: 0;
-            color: #004085;
-            font-size: 1.4rem;
-        }
-
-        .weather-data {
+        /* Main weather display */
+        .weather-display {
             display: flex;
-            justify-content: space-around;
-            margin-top: 1rem;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
-        .data-point {
-            display: flex;
-            flex-direction: column;
+        .city-title {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
         }
 
-        .data-label {
-            font-size: 0.85rem;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .weather-status {
+            color: #94a3b8;
+            font-size: 1rem;
         }
 
-        .data-value {
-            font-size: 1.5rem;
+        .temp-text {
+            font-size: 3.5rem;
             font-weight: bold;
-            color: #212529;
+            color: #38bdf8;
         }
 
-        .loader {
-            display: none;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 1rem auto;
+        /* Extra Info Grid (3 Columns) */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .detail-box {
+            background-color: rgba(15, 23, 42, 0.6);
+            padding: 12px 8px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            text-align: center;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .error-message {
-            color: #dc3545;
-            margin-top: 1rem;
-            display: none;
+        .detail-title {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
         }
 
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border-top: 1px solid #334155;
+            padding-top: 15px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>UK Weather Tracker</h2>
+    <div class="weather-card">
         
-        <div class="input-group">
-            <input type="text" id="postcode" placeholder="e.g., SW1A 1AA" onkeypress="if(event.key === 'Enter') getWeather()">
-            <button onclick="getWeather()">Search</button>
+        <div class="top-bar">
+            <input type="text" id="searchInput" placeholder="Type a UK postcode or city...">
+            <button id="searchBtn">Search</button>
         </div>
-        
-        <div id="loader" class="loader"></div>
-        <div id="errorMessage" class="error-message"></div>
 
-        <div id="result" class="weather-card">
-            <h3 id="locationName">Location</h3>
-            <div class="weather-data">
-                <div class="data-point">
-                    <span class="data-label">Temp</span>
-                    <span class="data-value" id="tempValue">--°C</span>
-                </div>
-                <div class="data-point">
-                    <span class="data-label">Wind</span>
-                    <span class="data-value" id="windValue">-- km/h</span>
-                </div>
+        <div class="weather-display">
+            <div>
+                <h2 id="cityName" class="city-title">Welcome!</h2>
+                <p id="weatherDesc" class="weather-status">Type a postcode above to get the weather</p>
+            </div>
+            <div id="temperature" class="temp-text">--°C</div>
+        </div>
+
+        <div class="details-grid">
+            <div class="detail-box">
+                <div class="detail-title">Feels Like</div>
+                <div id="feelsLike" class="detail-value">--°C</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-title">Rain Chance</div>
+                <div id="rainChance" class="detail-value">--%</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-title">Wind Speed</div>
+                <div id="windSpeed" class="detail-value">-- mph</div>
             </div>
         </div>
+
+        <footer>
+            <p>Data provided by <strong>UK Met Office</strong> models</p>
+        </footer>
+
     </div>
 
     <script>
-        async function getWeather() {
-            const postcode = document.getElementById('postcode').value.trim();
-            const resultDiv = document.getElementById('result');
-            const loader = document.getElementById('loader');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            // UI Reset
-            resultDiv.style.display = 'none';
-            errorMessage.style.display = 'none';
-            
-            if (!postcode) {
-                showError('Please enter a UK postcode');
-                return;
+        // Get HTML elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        // Search button click handler
+        searchBtn.addEventListener('click', function() {
+            const query = searchInput.value.trim();
+            if (query !== "") {
+                findLocation(query);
             }
+        });
 
-            loader.style.display = 'block';
+        // Also allow pressing "Enter" key inside the search box
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query !== "") {
+                    findLocation(query);
+                }
+            }
+        });
 
+        // Step 1: Find coordinates from city/postcode
+        async function findLocation(place) {
             try {
-                // 1. Get coordinates for the UK postcode
-                const geoRes = await fetch(`https://api.postcodes.io/postcodes/${postcode}`);
-                const geoData = await geoRes.json();
-                
-                if (geoData.status !== 200) {
-                    throw new Error('Invalid postcode or location not found.');
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`;
+                const response = await fetch(geoUrl);
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    const firstResult = data.results[0];
+                    getMetOfficeWeather(firstResult.latitude, firstResult.longitude, firstResult.name, firstResult.country);
+                } else {
+                    alert("Location not found. Please try another postcode or city.");
                 }
-                
-                const { latitude, longitude, admin_district } = geoData.result;
+            } catch (error) {
+                alert("Error searching for location.");
+            }
+        }
 
-                // 2. Fetch current weather for those coordinates
-                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-                
-                if (!weatherRes.ok) {
-                    throw new Error('Failed to fetch weather data.');
-                }
+        // Step 2: Fetch weather data using Met Office model
+        async function getMetOfficeWeather(lat, lon, city, country) {
+            try {
+                // Fetching temperature, feels like, precipitation chance, wind speed, and weather code
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,wind_speed_10m,weather_code&wind_speed_unit=mph&models=ukmo_seamless`;
+                const response = await fetch(weatherUrl);
+                const data = await response.json();
 
-                const weatherData = await weatherRes.json();
-                const current = weatherData.current_weather;
+                const currentTemp = Math.round(data.current.temperature_2m);
+                const feelsLikeTemp = Math.round(data.current.apparent_temperature);
+                const precipProb = data.current.precipitation_probability ?? 0;
+                const wind = Math.round(data.current.wind_speed_10m);
+                const weatherCode = data.current.weather_code;
 
-                // 3. Update the UI
-                document.getElementById('locationName').innerText = admin_district || "Unknown Area";
-                document.getElementById('tempValue').innerText = `${current.temperature}°C`;
-                document.getElementById('windValue').innerText = `${current.windspeed} km/h`;
-                
-                loader.style.display = 'none';
-                resultDiv.style.display = 'block';
+                // Update HTML text
+                document.getElementById('cityName').textContent = `${city}, ${country || ''}`;
+                document.getElementById('temperature').textContent = `${currentTemp}°C`;
+                document.getElementById('feelsLike').textContent = `${feelsLikeTemp}°C`;
+                document.getElementById('rainChance').textContent = `${precipProb}%`;
+                document.getElementById('windSpeed').textContent = `${wind} mph`;
+
+                // Update background theme
+                setTheme(weatherCode);
 
             } catch (error) {
-                loader.style.display = 'none';
-                showError(error.message || 'An error occurred while fetching data.');
-                console.error(error);
+                alert("Could not load weather data.");
             }
         }
 
-        function showError(message) {
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.innerText = message;
-            errorMessage.style.display = 'block';
+        // Step 3: Change background based on weather code
+        function setTheme(code) {
+            // Remove previous theme classes
+            document.body.className = '';
+
+            if (code === 0 || code === 1) {
+                document.body.classList.add('sunny');
+                document.getElementById('weatherDesc').textContent = 'Sunny / Clear';
+            } else if (code === 2 || code === 3) {
+                document.body.classList.add('cloudy');
+                document.getElementById('weatherDesc').textContent = 'Cloudy';
+            } else {
+                document.body.classList.add('rainy');
+                document.getElementById('weatherDesc').textContent = 'Rainy';
+            }
         }
     </script>
+
 </body>
 </html>
