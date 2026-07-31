@@ -202,7 +202,7 @@
             }
         });
 
-        // Step 1: Find coordinates (Checks Postcodes.io FIRST, then falls back to Open-Meteo)
+        // Step 1: Find coordinates (Prefers specific local neighbourhood ward over broad council)
         async function findLocation(place) {
             try {
                 // First: Try looking up as a UK Postcode (Postcodes.io)
@@ -211,13 +211,17 @@
                 const postcodeData = await postcodeResponse.json();
 
                 if (postcodeData.status === 200 && postcodeData.result) {
-                    // Valid UK Postcode found!
                     const res = postcodeData.result;
-                    getMetOfficeWeather(res.latitude, res.longitude, res.postcode, res.country);
+
+                    // Grab the local neighbourhood ward (e.g., South Croydon / Purley / Sanderstead)
+                    const localArea = res.admin_ward || res.admin_district;
+                    const regionOrCountry = res.region || res.country;
+
+                    getMetOfficeWeather(res.latitude, res.longitude, localArea, regionOrCountry);
                     return;
                 }
 
-                // Second: If not a postcode, search as a City/Town name (Open-Meteo)
+                // Second: Fallback to searching City/Town name (Open-Meteo)
                 const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`;
                 const geoResponse = await fetch(geoUrl);
                 const geoData = await geoResponse.json();
