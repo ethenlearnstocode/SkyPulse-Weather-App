@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyPulse Weather App</title>
+    
+    <style>
+        /* Base page setup */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121826;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-size: cover;
+            background-position: center;
+            transition: background 0.4s ease;
+        }
+
+        /* Weather condition backgrounds */
+        body.sunny {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                              url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80');
+        }
+
+        body.cloudy {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                              url('https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=1000&q=80');
+        }
+
+        body.rainy {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                              url('https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=1000&q=80');
+        }
+
+        /* Container card */
+        .weather-card {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 25px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Header layout */
+        .top-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #0f172a;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: none;
+            background-color: #38bdf8;
+            color: #0f172a;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* Main weather display */
+        .weather-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .city-title {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .weather-status {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .temp-text {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border-top: 1px solid #334155;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="weather-card">
+        
+        <div class="top-bar">
+            <input type="text" id="searchInput" placeholder="Enter postcode or city...">
+            <button id="searchBtn">Search</button>
+        </div>
+
+        <div class="weather-display">
+            <div>
+                <h2 id="cityName" class="city-title">London, UK</h2>
+                <p id="weatherDesc" class="weather-status">Search a location above</p>
+            </div>
+            <div id="temperature" class="temp-text">--°C</div>
+        </div>
+
+        <footer>
+            <p>Data provided by <strong>UK Met Office</strong> models</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Get HTML elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        // Search button click handler
+        searchBtn.addEventListener('click', function() {
+            const query = searchInput.value.trim();
+            if (query !== "") {
+                findLocation(query);
+            }
+        });
+
+        // Step 1: Find coordinates from city/postcode
+        async function findLocation(place) {
+            try {
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`;
+                const response = await fetch(geoUrl);
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    const firstResult = data.results[0];
+                    getMetOfficeWeather(firstResult.latitude, firstResult.longitude, firstResult.name, firstResult.country);
+                } else {
+                    alert("Location not found. Please try another postcode or city.");
+                }
+            } catch (error) {
+                alert("Error searching for location.");
+            }
+        }
+
+        // Step 2: Fetch weather data using Met Office model
+        async function getMetOfficeWeather(lat, lon, city, country) {
+            try {
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&models=ukmo_seamless`;
+                const response = await fetch(weatherUrl);
+                const data = await response.json();
+
+                const currentTemp = Math.round(data.current_weather.temperature);
+                const weatherCode = data.current_weather.weathercode;
+
+                // Update HTML text
+                document.getElementById('cityName').textContent = `${city}, ${country || ''}`;
+                document.getElementById('temperature').textContent = `${currentTemp}°C`;
+
+                // Update theme
+                setTheme(weatherCode);
+
+            } catch (error) {
+                alert
