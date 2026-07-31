@@ -192,7 +192,7 @@
             }
         });
 
-        // Also allow pressing "Enter" key inside the search box
+        // Allow pressing "Enter" key inside the search box
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 const query = searchInput.value.trim();
@@ -202,18 +202,31 @@
             }
         });
 
-        // Step 1: Find coordinates from city/postcode
+        // Step 1: Find coordinates (Checks Postcodes.io FIRST, then falls back to Open-Meteo)
         async function findLocation(place) {
             try {
-                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`;
-                const response = await fetch(geoUrl);
-                const data = await response.json();
+                // First: Try looking up as a UK Postcode (Postcodes.io)
+                const postcodeUrl = `https://api.postcodes.io/postcodes/${encodeURIComponent(place)}`;
+                const postcodeResponse = await fetch(postcodeUrl);
+                const postcodeData = await postcodeResponse.json();
 
-                if (data.results && data.results.length > 0) {
-                    const firstResult = data.results[0];
+                if (postcodeData.status === 200 && postcodeData.result) {
+                    // Valid UK Postcode found!
+                    const res = postcodeData.result;
+                    getMetOfficeWeather(res.latitude, res.longitude, res.postcode, res.country);
+                    return;
+                }
+
+                // Second: If not a postcode, search as a City/Town name (Open-Meteo)
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`;
+                const geoResponse = await fetch(geoUrl);
+                const geoData = await geoResponse.json();
+
+                if (geoData.results && geoData.results.length > 0) {
+                    const firstResult = geoData.results[0];
                     getMetOfficeWeather(firstResult.latitude, firstResult.longitude, firstResult.name, firstResult.country);
                 } else {
-                    alert("Location not found. Please try another postcode or city.");
+                    alert("Location or postcode not found. Please check for typos and try again!");
                 }
             } catch (error) {
                 alert("Error searching for location.");
@@ -235,7 +248,7 @@
                 const weatherCode = data.current.weather_code;
 
                 // Update HTML text
-                document.getElementById('cityName').textContent = `${city}, ${country || ''}`;
+                document.getElementById('cityName').textContent = `${city}${country ? ', ' + country : ''}`;
                 document.getElementById('temperature').textContent = `${currentTemp}°C`;
                 document.getElementById('feelsLike').textContent = `${feelsLikeTemp}°C`;
                 document.getElementById('rainChance').textContent = `${precipProb}%`;
