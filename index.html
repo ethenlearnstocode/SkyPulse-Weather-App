@@ -200,4 +200,158 @@
 
         <div class="weather-display">
             <div>
-                <h2 id="cityName" class="city-title">Welcome!
+                <h2 id="cityName" class="city-title">Welcome!</h2>
+                <p id="weatherDesc" class="weather-status">Search for any location globally (e.g. Anjengo, 695309, Tokyo)</p>
+            </div>
+            <div id="temperature" class="temp-text">--°C</div>
+        </div>
+
+        <div class="details-grid">
+            <div class="detail-box">
+                <div class="detail-title">Feels Like</div>
+                <div id="feelsLike" class="detail-value">--°C</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-title">Rain Chance</div>
+                <div id="rainChance" class="detail-value">--%</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-title">Wind Speed</div>
+                <div id="windSpeed" class="detail-value">-- mph</div>
+            </div>
+        </div>
+
+        <div class="hourly-section">
+            <div class="section-title">Hourly Forecast</div>
+            <div id="hourlyContainer" class="hourly-container">
+                <div class="hourly-box"><div class="hourly-time">--</div><div class="hourly-temp">--°C</div><div class="hourly-rain">--%</div></div>
+                <div class="hourly-box"><div class="hourly-time">--</div><div class="hourly-temp">--°C</div><div class="hourly-rain">--%</div></div>
+                <div class="hourly-box"><div class="hourly-time">--</div><div class="hourly-temp">--°C</div><div class="hourly-rain">--%</div></div>
+                <div class="hourly-box"><div class="hourly-time">--</div><div class="hourly-temp">--°C</div><div class="hourly-rain">--%</div></div>
+                <div class="hourly-box"><div class="hourly-time">--</div><div class="hourly-temp">--°C</div><div class="hourly-rain">--%</div></div>
+                <div class="hourly-box"><div class="hourly-time">--</div><div class="hourly-temp">--°C</div><div class="hourly-rain">--%</div></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Data provided by <strong>Global Open-Meteo Engines</strong></p>
+        </footer>
+
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        searchBtn.addEventListener('click', function() {
+            const query = searchInput.value.trim();
+            if (query !== "") {
+                findGlobalLocation(query);
+            }
+        });
+
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query !== "") {
+                    findGlobalLocation(query);
+                }
+            }
+        });
+
+        // Universal Location Search
+        async function findGlobalLocation(place) {
+            try {
+                // Fetch up to 10 matching results to ensure small towns/villages are indexed
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=10&language=en&format=json`;
+                const response = await fetch(geoUrl);
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    const result = data.results[0];
+                    const locationName = result.name;
+                    const countryName = result.country || '';
+                    const adminRegion = result.admin1 ? `, ${result.admin1}` : '';
+                    const fullLocationStr = `${locationName}${adminRegion}${countryName ? ', ' + countryName : ''}`;
+
+                    getGlobalWeatherData(result.latitude, result.longitude, fullLocationStr);
+                } else {
+                    alert("Location not found! Try searching by name (e.g., Anjengo or Anchuthengu) or PIN code.");
+                }
+            } catch (error) {
+                alert("Error searching for location.");
+            }
+        }
+
+        // Fetch Weather Data
+        async function getGlobalWeatherData(lat, lon, locationLabel) {
+            try {
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&wind_speed_unit=mph&timezone=auto&forecast_days=2`;
+                
+                const response = await fetch(weatherUrl);
+                const data = await response.json();
+
+                const currentLocalTime = data.current.time;
+                let currentHourIndex = data.hourly.time.findIndex(t => t >= currentLocalTime);
+                if (currentHourIndex === -1) currentHourIndex = 0;
+
+                const currentTemp = Math.round(data.current.temperature_2m);
+                const feelsLikeTemp = Math.round(data.current.apparent_temperature);
+                const precipProb = data.current.precipitation_probability ?? data.hourly.precipitation_probability[currentHourIndex] ?? 0;
+                const wind = Math.round(data.current.wind_speed_10m);
+                const weatherCode = data.current.weather_code;
+
+                document.getElementById('cityName').textContent = locationLabel;
+                document.getElementById('temperature').textContent = `${currentTemp}°C`;
+                document.getElementById('feelsLike').textContent = `${feelsLikeTemp}°C`;
+                document.getElementById('rainChance').textContent = `${precipProb}%`;
+                document.getElementById('windSpeed').textContent = `${wind} mph`;
+
+                renderHourlyForecast(data.hourly, currentHourIndex);
+                setTheme(weatherCode);
+
+            } catch (error) {
+                alert("Could not load weather forecast.");
+            }
+        }
+
+        function renderHourlyForecast(hourlyData, startIndex) {
+            const container = document.getElementById('hourlyContainer');
+            container.innerHTML = ''; 
+
+            for (let i = startIndex; i < startIndex + 6 && i < hourlyData.time.length; i++) {
+                const timeStr = hourlyData.time[i];
+                const hourNum = new Date(timeStr).getHours();
+                const formattedTime = `${hourNum < 10 ? '0' : ''}${hourNum}:00`;
+                const temp = Math.round(hourlyData.temperature_2m[i]);
+                const rain = hourlyData.precipitation_probability[i] ?? 0;
+
+                const box = document.createElement('div');
+                box.className = 'hourly-box';
+                box.innerHTML = `
+                    <div class="hourly-time">${formattedTime}</div>
+                    <div class="hourly-temp">${temp}°C</div>
+                    <div class="hourly-rain">🌧️ ${rain}%</div>
+                `;
+                container.appendChild(box);
+            }
+        }
+
+        function setTheme(code) {
+            document.body.className = '';
+
+            if (code === 0 || code === 1) {
+                document.body.classList.add('sunny');
+                document.getElementById('weatherDesc').textContent = 'Sunny / Clear';
+            } else if (code === 2 || code === 3 || code === 45 || code === 48) {
+                document.body.classList.add('cloudy');
+                document.getElementById('weatherDesc').textContent = 'Cloudy / Overcast';
+            } else {
+                document.body.classList.add('rainy');
+                document.getElementById('weatherDesc').textContent = 'Rainy / Precipitation';
+            }
+        }
+    </script>
+
+</body>
+</html>
