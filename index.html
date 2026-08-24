@@ -52,11 +52,18 @@
             width: 100%;
             max-width: 500px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            position: relative;
         }
 
-        /* Location tracking action bar */
-        .track-banner {
+        /* Action buttons bar */
+        .action-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             margin-bottom: 20px;
+        }
+
+        .track-banner {
             padding: 12px;
             background: rgba(56, 189, 248, 0.1);
             border: 1px solid #38bdf8;
@@ -72,7 +79,12 @@
             color: #e2e8f0;
         }
 
-        .track-btn {
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-primary {
             background-color: #38bdf8;
             color: #0f172a;
             border: none;
@@ -84,8 +96,102 @@
             white-space: nowrap;
         }
 
-        .track-btn:hover {
+        .btn-secondary {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #38bdf8;
+            border: 1px solid #38bdf8;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .btn-test {
+            flex: 1;
+            background-color: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid #22c55e;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover, .btn-test:hover {
             opacity: 0.9;
+        }
+
+        /* Instructions Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 450px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            color: #38bdf8;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .instructions-list {
+            padding-left: 20px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .instructions-list li {
+            margin-bottom: 10px;
         }
 
         /* Header layout */
@@ -105,7 +211,7 @@
             font-size: 1rem;
         }
 
-        button {
+        button.search-btn {
             padding: 10px 15px;
             border-radius: 6px;
             border: none;
@@ -113,10 +219,6 @@
             color: #0f172a;
             font-weight: bold;
             cursor: pointer;
-        }
-
-        button:hover {
-            opacity: 0.9;
         }
 
         /* Main weather display */
@@ -143,7 +245,7 @@
             color: #38bdf8;
         }
 
-        /* Extra Info Grid (3 Columns) */
+        /* Extra Info Grid */
         .details-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -232,15 +334,21 @@
 
     <div class="weather-card">
         
-        <!-- Track Location Banner -->
-        <div class="track-banner" id="trackBanner">
-            <span class="track-text">Get daily 8:00 AM London weather alerts for your local area.</span>
-            <button class="track-btn" id="trackBtn">Track & Notify</button>
+        <!-- Action Control Panel -->
+        <div class="action-bar">
+            <div class="track-banner">
+                <span class="track-text">Get daily 8:00 AM weather alerts for your area.</span>
+                <button class="btn-primary" id="trackBtn">Track & Notify</button>
+            </div>
+            <div class="button-group">
+                <button class="btn-test" id="testAlertBtn">⚡ Test Alert (1s)</button>
+                <button class="btn-secondary" id="infoBtn">📲 How to Install PWA</button>
+            </div>
         </div>
 
         <div class="top-bar">
             <input type="text" id="searchInput" placeholder="Enter any village, town, city or postcode...">
-            <button id="searchBtn">Search</button>
+            <button class="search-btn" id="searchBtn">Search</button>
         </div>
 
         <div class="weather-display">
@@ -284,14 +392,48 @@
 
     </div>
 
+    <!-- PWA Instructions Modal Overlay -->
+    <div class="modal-overlay" id="instructionsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">How to Install as a Web App</h3>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <ol class="instructions-list">
+                <li><strong>Android (Chrome):</strong> Tap the 3-dot menu at the top right, then select <em>"Add to Home screen"</em> or <em>"Install app"</em>.</li>
+                <li><strong>iOS / iPhone (Safari):</strong> Tap the <strong>Share</strong> button at the bottom of the screen, scroll down, and select <em>"Add to Home Screen"</em>.</li>
+                <li><strong>Desktop (Chrome or Edge):</strong> Click the <strong>Install</strong> icon on the right side of the URL bar at the top.</li>
+                <li><strong>Hosting your own version:</strong> Save `index.html`, `manifest.json`, and `sw.js` into a GitHub repository and enable <strong>GitHub Pages</strong> under Settings to host it for free.</li>
+            </ol>
+        </div>
+    </div>
+
     <script>
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
         const trackBtn = document.getElementById('trackBtn');
-        const trackBanner = document.getElementById('trackBanner');
+        const testAlertBtn = document.getElementById('testAlertBtn');
+        const infoBtn = document.getElementById('infoBtn');
+        const instructionsModal = document.getElementById('instructionsModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
 
         let userCoords = null;
         let userLocationName = "Your Area";
+
+        // Modal Controls
+        infoBtn.addEventListener('click', () => {
+            instructionsModal.style.display = 'flex';
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            instructionsModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === instructionsModal) {
+                instructionsModal.style.display = 'none';
+            }
+        });
 
         // 1. Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -300,7 +442,52 @@
                 .catch((err) => console.error('SW Registration Failed:', err));
         }
 
-        // 2. Track & Enable Notifications Handler
+        // 2. 1-Second Test Alert Trigger
+        testAlertBtn.addEventListener('click', async () => {
+            if (!('Notification' in window)) {
+                alert("Notifications are not supported by this browser.");
+                return;
+            }
+
+            let permission = Notification.permission;
+            if (permission !== 'granted') {
+                permission = await Notification.requestPermission();
+            }
+
+            if (permission === 'granted') {
+                testAlertBtn.textContent = "Sending in 1s...";
+                
+                // Triggers exactly 1 second after click
+                setTimeout(() => {
+                    const locName = userLocationName !== "Your Area" ? userLocationName : "London";
+                    const currentTemp = document.getElementById('temperature').textContent;
+                    
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'SCHEDULE_NOTIFICATION',
+                            payload: { 
+                                lat: userCoords ? userCoords.lat : 51.5074, 
+                                lon: userCoords ? userCoords.lon : -0.1278, 
+                                locationLabel: `${locName} (Test Alert)` 
+                            }
+                        });
+                    } else {
+                        // Direct browser fallback if SW isn't active
+                        new Notification(`SkyPulse Test Alert: ${locName}`, {
+                            body: `Test success! Weather update active. Current temp: ${currentTemp}`,
+                            icon: 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png'
+                        });
+                    }
+
+                    testAlertBtn.textContent = "Sent ✓";
+                    setTimeout(() => { testAlertBtn.textContent = "⚡ Test Alert (1s)"; }, 2000);
+                }, 1000);
+            } else {
+                alert("Permission denied. Please enable notifications in browser settings.");
+            }
+        });
+
+        // 3. Track & Enable Notifications Handler
         trackBtn.addEventListener('click', async () => {
             if ('Notification' in window) {
                 const permission = await Notification.requestPermission();
@@ -314,7 +501,7 @@
             }
         });
 
-        // 3. Geolocation Access
+        // 4. Geolocation Access
         function getUserLocationAndSchedule() {
             if (navigator.geolocation) {
                 trackBtn.textContent = "Locating...";
@@ -349,7 +536,7 @@
             }
         }
 
-        // 4. Schedule 8:00 AM London Time Notification
+        // 5. Schedule 8:00 AM London Time Notification
         function scheduleDailyLondon8AMNotification(lat, lon, locationLabel) {
             const now = new Date();
             const target = new Date();
