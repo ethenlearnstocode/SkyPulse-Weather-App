@@ -54,6 +54,40 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
         }
 
+        /* Location tracking action bar */
+        .track-banner {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid #38bdf8;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .track-text {
+            font-size: 0.85rem;
+            color: #e2e8f0;
+        }
+
+        .track-btn {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .track-btn:hover {
+            opacity: 0.9;
+        }
+
         /* Header layout */
         .top-bar {
             display: flex;
@@ -198,6 +232,12 @@
 
     <div class="weather-card">
         
+        <!-- Track Location Banner -->
+        <div class="track-banner" id="trackBanner">
+            <span class="track-text">Get daily 8:00 AM London weather alerts for your local area.</span>
+            <button class="track-btn" id="trackBtn">Track & Notify</button>
+        </div>
+
         <div class="top-bar">
             <input type="text" id="searchInput" placeholder="Enter any village, town, city or postcode...">
             <button id="searchBtn">Search</button>
@@ -247,28 +287,37 @@
     <script>
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
+        const trackBtn = document.getElementById('trackBtn');
+        const trackBanner = document.getElementById('trackBanner');
+
         let userCoords = null;
         let userLocationName = "Your Area";
 
-        // 1. Service Worker & Notification Setup
+        // 1. Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
                 .then((reg) => console.log('Service Worker Registered'))
                 .catch((err) => console.error('SW Registration Failed:', err));
         }
 
-        async function requestNotificationPermission() {
+        // 2. Track & Enable Notifications Handler
+        trackBtn.addEventListener('click', async () => {
             if ('Notification' in window) {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     getUserLocationAndSchedule();
+                } else {
+                    alert("Notification permissions are required for daily weather alerts.");
                 }
+            } else {
+                alert("Notifications are not supported on this browser.");
             }
-        }
+        });
 
-        // 2. Geolocation for Device Location
+        // 3. Geolocation Access
         function getUserLocationAndSchedule() {
             if (navigator.geolocation) {
+                trackBtn.textContent = "Locating...";
                 navigator.geolocation.getCurrentPosition(async (position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
@@ -285,13 +334,22 @@
 
                     getGlobalWeatherData(lat, lon, userLocationName);
                     scheduleDailyLondon8AMNotification(lat, lon, userLocationName);
-                }, () => {
-                    getGlobalWeatherData(51.5074, -0.1278, "London");
+
+                    // Update button status once tracked
+                    trackBtn.textContent = "Tracking Active ✓";
+                    trackBtn.style.backgroundColor = "#22c55e";
+                    trackBtn.style.color = "#ffffff";
+                    trackBtn.disabled = true;
+                }, (error) => {
+                    alert("Unable to access location. Please check browser permissions.");
+                    trackBtn.textContent = "Track & Notify";
                 });
+            } else {
+                alert("Geolocation is not supported by your browser.");
             }
         }
 
-        // 3. Schedule 8:00 AM London Time Notification
+        // 4. Schedule 8:00 AM London Time Notification
         function scheduleDailyLondon8AMNotification(lat, lon, locationLabel) {
             const now = new Date();
             const target = new Date();
@@ -320,11 +378,6 @@
                 }, 24 * 60 * 60 * 1000);
             }, delay);
         }
-
-        // Initialize on load
-        window.addEventListener('load', () => {
-            requestNotificationPermission();
-        });
 
         searchBtn.addEventListener('click', function() {
             const query = searchInput.value.trim();
