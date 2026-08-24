@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkyPulse Global Weather App</title>
     
+    <!-- PWA Setup Links -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121826">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1163/1163661.png">
+
     <style>
         /* Base page setup */
         body {
@@ -242,6 +247,84 @@
     <script>
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
+        let userCoords = null;
+        let userLocationName = "Your Area";
+
+        // 1. Service Worker & Notification Setup
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then((reg) => console.log('Service Worker Registered'))
+                .catch((err) => console.error('SW Registration Failed:', err));
+        }
+
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    getUserLocationAndSchedule();
+                }
+            }
+        }
+
+        // 2. Geolocation for Device Location
+        function getUserLocationAndSchedule() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    userCoords = { lat, lon };
+
+                    try {
+                        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${lat},${lon}&count=1&language=en&format=json`;
+                        const res = await fetch(geoUrl);
+                        const data = await res.json();
+                        if (data.results && data.results.length > 0) {
+                            userLocationName = data.results[0].name;
+                        }
+                    } catch(e) {}
+
+                    getGlobalWeatherData(lat, lon, userLocationName);
+                    scheduleDailyLondon8AMNotification(lat, lon, userLocationName);
+                }, () => {
+                    getGlobalWeatherData(51.5074, -0.1278, "London");
+                });
+            }
+        }
+
+        // 3. Schedule 8:00 AM London Time Notification
+        function scheduleDailyLondon8AMNotification(lat, lon, locationLabel) {
+            const now = new Date();
+            const target = new Date();
+            target.setHours(8, 0, 0, 0);
+
+            if (now.getTime() >= target.getTime()) {
+                target.setDate(target.getDate() + 1);
+            }
+
+            const delay = target.getTime() - now.getTime();
+
+            setTimeout(() => {
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'SCHEDULE_NOTIFICATION',
+                        payload: { lat, lon, locationLabel }
+                    });
+                }
+                setInterval(() => {
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'SCHEDULE_NOTIFICATION',
+                            payload: { lat, lon, locationLabel }
+                        });
+                    }
+                }, 24 * 60 * 60 * 1000);
+            }, delay);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            requestNotificationPermission();
+        });
 
         searchBtn.addEventListener('click', function() {
             const query = searchInput.value.trim();
@@ -262,7 +345,6 @@
         // Universal Location Search
         async function findGlobalLocation(place) {
             try {
-                // Fetch up to 10 matching results to ensure small towns/villages are indexed
                 const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=10&language=en&format=json`;
                 const response = await fetch(geoUrl);
                 const data = await response.json();
@@ -276,7 +358,7 @@
 
                     getGlobalWeatherData(result.latitude, result.longitude, fullLocationStr);
                 } else {
-                    alert("Location not found! Try searching by name (e.g., Anjengo or Anchuthengu) or PIN code.");
+                    alert("Location not found! Try searching by name or PIN code.");
                 }
             } catch (error) {
                 alert("Error searching for location.");
