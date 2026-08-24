@@ -6,12 +6,14 @@
     <title>SkyPulse Global Weather App</title>
     
     <!-- PWA Setup Links -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#121826">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SkyPulse">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1163/1163661.png">
 
     <style>
-        /* Base page setup */
         body {
             font-family: Arial, sans-serif;
             background-color: #121826;
@@ -27,7 +29,6 @@
             transition: background 0.4s ease;
         }
 
-        /* Weather condition backgrounds */
         body.sunny {
             background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), 
                               url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80');
@@ -43,7 +44,6 @@
                               url('https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=1000&q=80');
         }
 
-        /* Container card */
         .weather-card {
             background: rgba(30, 41, 59, 0.88);
             border: 1px solid #334155;
@@ -55,7 +55,6 @@
             position: relative;
         }
 
-        /* Action buttons bar */
         .action-bar {
             display: flex;
             flex-direction: column;
@@ -128,7 +127,6 @@
             opacity: 0.9;
         }
 
-        /* Instructions Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -194,7 +192,6 @@
             margin-bottom: 10px;
         }
 
-        /* Header layout */
         .top-bar {
             display: flex;
             gap: 10px;
@@ -221,7 +218,6 @@
             cursor: pointer;
         }
 
-        /* Main weather display */
         .weather-display {
             display: flex;
             justify-content: space-between;
@@ -245,7 +241,6 @@
             color: #38bdf8;
         }
 
-        /* Extra Info Grid */
         .details-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -273,7 +268,6 @@
             color: #ffffff;
         }
 
-        /* Hourly Forecast Section */
         .hourly-section {
             margin-bottom: 20px;
         }
@@ -333,8 +327,6 @@
 <body>
 
     <div class="weather-card">
-        
-        <!-- Action Control Panel -->
         <div class="action-bar">
             <div class="track-banner">
                 <span class="track-text">Get daily 8:00 AM weather alerts for your area.</span>
@@ -389,10 +381,8 @@
         <footer>
             <p>Data provided by <strong>Global Open-Meteo Engines</strong></p>
         </footer>
-
     </div>
 
-    <!-- PWA Instructions Modal Overlay -->
     <div class="modal-overlay" id="instructionsModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -420,29 +410,20 @@
         let userCoords = null;
         let userLocationName = "Your Area";
 
-        // Modal Controls
-        infoBtn.addEventListener('click', () => {
-            instructionsModal.style.display = 'flex';
-        });
+        infoBtn.addEventListener('click', () => { instructionsModal.style.display = 'flex'; });
+        closeModalBtn.addEventListener('click', () => { instructionsModal.style.display = 'none'; });
+        window.addEventListener('click', (e) => { if (e.target === instructionsModal) instructionsModal.style.display = 'none'; });
 
-        closeModalBtn.addEventListener('click', () => {
-            instructionsModal.style.display = 'none';
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target === instructionsModal) {
-                instructionsModal.style.display = 'none';
-            }
-        });
-
-        // 1. Service Worker Registration
+        // Service Worker Registration with explicit relative scope
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then((reg) => console.log('Service Worker Registered'))
-                .catch((err) => console.error('SW Registration Failed:', err));
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                    .then((reg) => console.log('SW Registered with scope:', reg.scope))
+                    .catch((err) => console.error('SW Registration Failed:', err));
+            });
         }
 
-        // 2. 1-Second Test Alert Trigger
+        // Test Alert Event Handler (Reacts in 1s)
         testAlertBtn.addEventListener('click', async () => {
             if (!('Notification' in window)) {
                 alert("Notifications are not supported by this browser.");
@@ -457,12 +438,11 @@
             if (permission === 'granted') {
                 testAlertBtn.textContent = "Sending in 1s...";
                 
-                // Triggers exactly 1 second after click
                 setTimeout(() => {
                     const locName = userLocationName !== "Your Area" ? userLocationName : "London";
                     const currentTemp = document.getElementById('temperature').textContent;
-                    
-                    if (navigator.serviceWorker.controller) {
+
+                    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                         navigator.serviceWorker.controller.postMessage({
                             type: 'SCHEDULE_NOTIFICATION',
                             payload: { 
@@ -472,7 +452,6 @@
                             }
                         });
                     } else {
-                        // Direct browser fallback if SW isn't active
                         new Notification(`SkyPulse Test Alert: ${locName}`, {
                             body: `Test success! Weather update active. Current temp: ${currentTemp}`,
                             icon: 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png'
@@ -483,11 +462,10 @@
                     setTimeout(() => { testAlertBtn.textContent = "⚡ Test Alert (1s)"; }, 2000);
                 }, 1000);
             } else {
-                alert("Permission denied. Please enable notifications in browser settings.");
+                alert("Permission denied. Please allow notifications in your device settings.");
             }
         });
 
-        // 3. Track & Enable Notifications Handler
         trackBtn.addEventListener('click', async () => {
             if ('Notification' in window) {
                 const permission = await Notification.requestPermission();
@@ -501,7 +479,6 @@
             }
         });
 
-        // 4. Geolocation Access
         function getUserLocationAndSchedule() {
             if (navigator.geolocation) {
                 trackBtn.textContent = "Locating...";
@@ -522,7 +499,6 @@
                     getGlobalWeatherData(lat, lon, userLocationName);
                     scheduleDailyLondon8AMNotification(lat, lon, userLocationName);
 
-                    // Update button status once tracked
                     trackBtn.textContent = "Tracking Active ✓";
                     trackBtn.style.backgroundColor = "#22c55e";
                     trackBtn.style.color = "#ffffff";
@@ -536,7 +512,6 @@
             }
         }
 
-        // 5. Schedule 8:00 AM London Time Notification
         function scheduleDailyLondon8AMNotification(lat, lon, locationLabel) {
             const now = new Date();
             const target = new Date();
@@ -549,14 +524,14 @@
             const delay = target.getTime() - now.getTime();
 
             setTimeout(() => {
-                if (navigator.serviceWorker.controller) {
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                     navigator.serviceWorker.controller.postMessage({
                         type: 'SCHEDULE_NOTIFICATION',
                         payload: { lat, lon, locationLabel }
                     });
                 }
                 setInterval(() => {
-                    if (navigator.serviceWorker.controller) {
+                    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                         navigator.serviceWorker.controller.postMessage({
                             type: 'SCHEDULE_NOTIFICATION',
                             payload: { lat, lon, locationLabel }
@@ -568,21 +543,16 @@
 
         searchBtn.addEventListener('click', function() {
             const query = searchInput.value.trim();
-            if (query !== "") {
-                findGlobalLocation(query);
-            }
+            if (query !== "") findGlobalLocation(query);
         });
 
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 const query = searchInput.value.trim();
-                if (query !== "") {
-                    findGlobalLocation(query);
-                }
+                if (query !== "") findGlobalLocation(query);
             }
         });
 
-        // Universal Location Search
         async function findGlobalLocation(place) {
             try {
                 const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=10&language=en&format=json`;
@@ -605,7 +575,6 @@
             }
         }
 
-        // Fetch Weather Data
         async function getGlobalWeatherData(lat, lon, locationLabel) {
             try {
                 const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&wind_speed_unit=mph&timezone=auto&forecast_days=2`;
@@ -674,6 +643,5 @@
             }
         }
     </script>
-
 </body>
 </html>
