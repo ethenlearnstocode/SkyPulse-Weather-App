@@ -1,63 +1,41 @@
 const CACHE_NAME = 'skypulse-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
 
-// Install Event
+// Install event - bypass waiting to activate immediately
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
-// Activate Event
+// Activate event - claim all clients instantly
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    })
-  );
-  self.clients.claim();
+  event.waitUntil(self.clients.claim());
 });
 
-// Fetch Event (Offline Support)
+// Fetch event - handle basic offline fallback
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
 
-// Handle Weather Notification Trigger
-self.addEventListener('message', (event) => {
+// Push / Message listener for weather notifications
+self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
     const { lat, lon, locationLabel } = event.data.payload;
-    fetchAndSendWeatherNotification(lat, lon, locationLabel);
+    
+    try {
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`
+      );
+      const data = await response.json();
+      const temp = Math.round(data.current.temperature_2m);
+
+      await self.registration.showNotification(`SkyPulse Alert: ${locationLabel}`, {
+        body: `Current weather update: ${temp}°C.`,
+        icon: 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png',
+        badge: 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png'
+      });
+    } catch (err) {
+      console.error('Notification error:', err);
+    }
   }
 });
-
-async function fetchAndSendWeatherNotification(lat, lon, locationLabel) {
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Europe/London`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    const temp = Math.round(data.current.temperature_2m);
-    
-    self.registration.showNotification(`8:00 AM Weather Update for ${locationLabel}`, {
-      body: `Current temperature is ${temp}°C. Have a great day!`,
-      icon: 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png',
-      badge: 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png'
-    });
-  } catch (err) {
-    console.error('Notification error:', err);
-  }
-}
